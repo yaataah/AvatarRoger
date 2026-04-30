@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>R0GER — Assistant IA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal: #2fa9a7;
+      --teal-dark: #1a6f6d;
+      --teal-glow: rgba(47,169,167,0.25);
+      --bg: #080d14;
+      --bg2: #0d1520;
+      --bg3: #111d2b;
+      --border: rgba(47,169,167,0.25);
+      --text: #d0e8e8;
+      --muted: #4a7070;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-ui: 'Exo 2', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND GRID ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(47,169,167,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(47,169,167,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── SCANLINE ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── MAIN CARD ── */
+    .card {
+      width: 400px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 0 60px rgba(47,169,167,0.12), 0 30px 80px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      max-height: 92vh;
+      position: relative;
+      z-index: 1;
+      animation: cardIn .5s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      color: var(--teal);
+      letter-spacing: 3px;
+    }
+
+    .header-title span {
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      background: var(--teal);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--teal);
+      animation: blink-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes blink-dot {
+      0%,100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+
+    /* ── AVATAR ZONE ── */
+    .avatar-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0 12px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .avatar-wrap {
+      position: relative;
+      width: 120px;
+      height: 130px;
+    }
+
+    .avatar-ring {
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      border: 1px solid rgba(47,169,167,0.2);
+      animation: spin-ring 12s linear infinite;
+    }
+
+    .avatar-ring::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: 50%;
+      width: 5px; height: 5px;
+      background: var(--teal);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--teal);
+      transform: translateX(-50%);
+    }
+
+    @keyframes spin-ring {
+      to { transform: rotate(360deg); }
+    }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -5px;
+      border-radius: 16px;
+      background: radial-gradient(ellipse, var(--teal-glow) 0%, transparent 70%);
+      animation: pulse-glow 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%,100% { opacity: .5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    /* ── SVG ROBOT ── */
+    .robot-svg {
+      width: 120px;
+      height: 130px;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 0 12px rgba(47,169,167,0.5));
+    }
+
+    .eye { transition: fill .3s, r .3s; }
+    #mouth-fill { transition: width .1s; }
+
+    .avatar-label {
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      color: var(--teal);
+      letter-spacing: 2px;
+    }
+
+    .avatar-status {
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-top: 3px;
+    }
+
+    /* ── SETUP SCREEN ── */
+    .setup {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setup-title {
+      font-family: var(--font-mono);
+      color: var(--teal);
+      font-size: .9rem;
+      letter-spacing: 2px;
+    }
+
+    .setup-sub {
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .setup input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .setup input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--teal);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: background .2s, transform .1s, box-shadow .2s;
+    }
+
+    .btn-primary:hover {
+      background: #3dc8c5;
+      box-shadow: 0 0 20px var(--teal-glow);
+    }
+
+    .btn-primary:active { transform: scale(.98); }
+
+    .error-msg {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      color: #e05555;
+      display: none;
+    }
+
+    /* ── CHAT SCREEN ── */
+    .chat {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      padding: 0 14px 14px;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 8px 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .messages::-webkit-scrollbar { width: 3px; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .msg {
+      max-width: 90%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: .84rem;
+      line-height: 1.6;
+      animation: msgIn .2s cubic-bezier(.2,.8,.2,1);
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: rgba(47,169,167,0.15);
+      border: 1px solid rgba(47,169,167,0.3);
+      color: #c5e8e8;
+      border-radius: 14px 14px 4px 14px;
+    }
+
+    .msg.roger {
+      align-self: flex-start;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 4px 14px 14px 14px;
+    }
+
+    .msg-name {
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      color: var(--teal);
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    .msg.thinking {
+      align-self: flex-start;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      border-radius: 4px 14px 14px 14px;
+    }
+
+    .dots span {
+      animation: dot-blink .8s ease-in-out infinite;
+      opacity: 0;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dot-blink { 50% { opacity: 1; } }
+
+    /* ── INPUT ROW ── */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 11px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: .84rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .input-row input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    .input-row button {
+      padding: 11px 16px;
+      background: var(--teal);
+      color: var(--bg);
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background .2s, box-shadow .2s, transform .1s;
+      flex-shrink: 0;
+    }
+
+    .input-row button:hover {
+      background: #3dc8c5;
+      box-shadow: 0 0 16px var(--teal-glow);
+    }
+
+    .input-row button:active { transform: scale(.95); }
+    .input-row button:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── FOOTER ── */
+    .footer {
+      padding: 8px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .footer-info {
+      font-family: var(--font-mono);
+      font-size: .6rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .btn-reset {
+      font-family: var(--font-mono);
+      font-size: .6rem;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: color .2s;
+    }
+    .btn-reset:hover { color: var(--teal); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">R0GER <span>// ASSISTANT IA</span></div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+
+  <!-- AVATAR -->
+  <div class="avatar-zone">
+    <div class="avatar-wrap">
+      <div class="avatar-ring"></div>
+      <div class="avatar-glow"></div>
+      <svg class="robot-svg" viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg">
+        <!-- Antenne -->
+        <line x1="60" y1="4" x2="60" y2="18" stroke="#2fa9a7" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="60" cy="4" r="4" fill="#2fa9a7">
+          <animate attributeName="opacity" values="1;0.2;1" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Tête -->
+        <rect x="18" y="18" width="84" height="62" rx="16" fill="#0d1520" stroke="#2fa9a7" stroke-width="1.5"/>
+        <!-- Yeux background -->
+        <ellipse cx="42" cy="44" rx="12" ry="12" fill="#080d14"/>
+        <ellipse cx="78" cy="44" rx="12" ry="12" fill="#080d14"/>
+        <!-- Yeux iris -->
+        <circle id="eye-l" class="eye" cx="42" cy="44" r="7" fill="#2fa9a7"/>
+        <circle id="eye-r" class="eye" cx="78" cy="44" r="7" fill="#2fa9a7"/>
+        <!-- Reflets -->
+        <circle cx="45" cy="41" r="2.5" fill="white" opacity="0.5"/>
+        <circle cx="81" cy="41" r="2.5" fill="white" opacity="0.5"/>
+        <!-- Bouche container -->
+        <rect x="36" y="66" width="48" height="10" rx="5" fill="#080d14" stroke="#2fa9a7" stroke-width="1"/>
+        <!-- Bouche animée -->
+        <rect id="mouth-fill" x="38" y="68" width="10" height="6" rx="3" fill="#2fa9a7"/>
+        <!-- Corps -->
+        <rect x="26" y="83" width="68" height="42" rx="12" fill="#0d1520" stroke="#2fa9a7" stroke-width="1.5"/>
+        <!-- Bras gauche -->
+        <rect x="8" y="85" width="16" height="32" rx="8" fill="#0d1520" stroke="#2fa9a7" stroke-width="1.5"/>
+        <!-- Bras droit -->
+        <rect x="96" y="85" width="16" height="32" rx="8" fill="#0d1520" stroke="#2fa9a7" stroke-width="1.5"/>
+        <!-- Chest label -->
+        <text x="60" y="112" text-anchor="middle" fill="#2fa9a7" font-size="10" font-family="'Share Tech Mono',monospace" letter-spacing="2">R0GER</text>
+        <!-- Chest lights -->
+        <circle cx="44" cy="93" r="3" fill="#2fa9a7" opacity="0.4"/>
+        <circle cx="55" cy="93" r="3" fill="#2fa9a7" opacity="0.7">
+          <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="66" cy="93" r="3" fill="#2fa9a7" opacity="0.4"/>
+      </svg>
+    </div>
+    <div class="avatar-label">R0GER</div>
+    <div class="avatar-status" id="avatarStatus">EN LIGNE · PRÊT</div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div class="setup" id="setupScreen">
+    <div class="setup-title">// INITIALISATION</div>
+    <div class="setup-sub">Renseigne ta clé API Anthropic pour activer R0GER. Elle sera sauvegardée localement.</div>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false"/>
+    <div class="error-msg" id="errorMsg">Clé invalide — doit commencer par sk-ant-</div>
+    <button class="btn-primary" id="btnActivate">ACTIVER R0GER</button>
+  </div>
+
+  <!-- CHAT SCREEN -->
+  <div class="chat hidden" id="chatScreen">
+    <div class="messages" id="messages"></div>
+    <div class="input-row">
+      <input type="text" id="userInput" placeholder="Pose ta question à R0GER..." autocomplete="off"/>
+      <button id="btnSend" title="Envoyer">➤</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-info">POWERED BY CLAUDE · ANTHROPIC</div>
+    <button class="btn-reset" id="btnReset">Changer de clé</button>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE
+  let apiKey = localStorage.getItem('r0ger_key') || '';
+  let history = [];
+  let thinking = false;
+
+  // ── DOM
+  const setupScreen = document.getElementById('setupScreen');
+  const chatScreen  = document.getElementById('chatScreen');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const btnActivate = document.getElementById('btnActivate');
+  const errorMsg    = document.getElementById('errorMsg');
+  const messagesEl  = document.getElementById('messages');
+  const userInput   = document.getElementById('userInput');
+  const btnSend     = document.getElementById('btnSend');
+  const avatarStatus= document.getElementById('avatarStatus');
+  const eyeL        = document.getElementById('eye-l');
+  const eyeR        = document.getElementById('eye-r');
+  const mouthFill   = document.getElementById('mouth-fill');
+  const btnReset    = document.getElementById('btnReset');
+
+  // ── INIT
+  if (apiKey) showChat();
+
+  // ── SETUP
+  btnActivate.addEventListener('click', activate);
+  apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') activate(); });
+
+  function activate() {
+    const val = apiKeyInput.value.trim();
+    if (!val.startsWith('sk-ant-')) {
+      errorMsg.style.display = 'block';
+      apiKeyInput.style.borderColor = '#e05555';
+      return;
+    }
+    apiKey = val;
+    localStorage.setItem('r0ger_key', apiKey);
+    errorMsg.style.display = 'none';
+    showChat();
+    addMsg('roger', 'Salut ! Je suis R0GER, ton assistant IA de bureau. Pose-moi n\'importe quelle question.');
+  }
+
+  // ── RESET
+  btnReset.addEventListener('click', () => {
+    localStorage.removeItem('r0ger_key');
+    apiKey = '';
+    history = [];
+    messagesEl.innerHTML = '';
+    showSetup();
+  });
+
+  // ── CHAT
+  btnSend.addEventListener('click', send);
+  userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !thinking) send(); });
+
+  async function send() {
+    const text = userInput.value.trim();
+    if (!text || thinking) return;
+    userInput.value = '';
+
+    addMsg('user', text);
+    history.push({ role: 'user', content: text });
+    setThinking(true);
+    const thinkEl = addThinking();
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 1000,
+          system: "Tu es R0GER, un assistant IA de bureau compact et efficace. Tu réponds toujours en français, de façon concise et directe. Tu as une légère personnalité de robot sympathique.",
+          messages: history
+        })
+      });
+
+      const data = await res.json();
+      thinkEl.remove();
+      setThinking(false);
+
+      if (data.error) {
+        addMsg('roger', `Erreur : ${data.error.message}`);
+        return;
+      }
+
+      const reply = data.content[0].text;
+      history.push({ role: 'assistant', content: reply });
+      addMsg('roger', reply);
+
+    } catch (err) {
+      thinkEl.remove();
+      setThinking(false);
+      addMsg('roger', `Erreur de connexion : ${err.message}`);
+    }
+  }
+
+  // ── HELPERS
+  function showChat() {
+    setupScreen.classList.add('hidden');
+    chatScreen.classList.remove('hidden');
+    setTimeout(() => userInput.focus(), 100);
+  }
+
+  function showSetup() {
+    chatScreen.classList.add('hidden');
+    setupScreen.classList.remove('hidden');
+    apiKeyInput.value = '';
+  }
+
+  function addMsg(type, text) {
+    const div = document.createElement('div');
+    div.classList.add('msg', type);
+    if (type === 'roger') {
+      div.innerHTML = `<div class="msg-name">R0GER //</div>${escape(text)}`;
+    } else {
+      div.textContent = text;
+    }
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function addThinking() {
+    const div = document.createElement('div');
+    div.classList.add('msg', 'thinking');
+    div.innerHTML = `<div class="msg-name">R0GER //</div>Réflexion en cours<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function setThinking(state) {
+    thinking = state;
+    btnSend.disabled = state;
+    userInput.disabled = state;
+
+    if (state) {
+      avatarStatus.textContent = 'EN LIGNE · RÉFLEXION...';
+      eyeL.setAttribute('fill', '#f0a030');
+      eyeR.setAttribute('fill', '#f0a030');
+      animateMouth(true);
+    } else {
+      avatarStatus.textContent = 'EN LIGNE · PRÊT';
+      eyeL.setAttribute('fill', '#2fa9a7');
+      eyeR.setAttribute('fill', '#2fa9a7');
+      animateMouth(false);
+    }
+  }
+
+  let mouthTimer = null;
+  function animateMouth(active) {
+    clearInterval(mouthTimer);
+    if (!active) { mouthFill.setAttribute('width', '10'); return; }
+    const w = [10, 18, 28, 36, 28, 18, 10, 6];
+    let i = 0;
+    mouthTimer = setInterval(() => {
+      mouthFill.setAttribute('width', w[i++ % w.length]);
+    }, 130);
+  }
+
+  function escape(str) {
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/\n/g,'<br>');
+  }
+</script>
+</body>
+</html>
